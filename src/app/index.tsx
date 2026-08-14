@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react';
 import { File } from 'expo-file-system';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import {
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+
+
 import * as ImagePicker from 'expo-image-picker';
 
 import { supabase } from '@/lib/supabase';
@@ -8,6 +19,7 @@ import { supabase } from '@/lib/supabase';
 type JournalDay = {
   id: string;
   day_number: number;
+  photoUrl: string | null;
 };
 
 export default function HomeScreen() {
@@ -50,7 +62,14 @@ export default function HomeScreen() {
 
     const { data: journalDays, error: daysError } = await supabase
       .from('journal_days')
-      .select('id, day_number')
+      .select(`
+        id,
+        day_number,
+        photos (
+          id,
+          storage_path
+        )
+      `)
       .eq('journal_id', journal.id)
       .order('day_number', { ascending: true });
 
@@ -59,7 +78,32 @@ export default function HomeScreen() {
       return;
     }
 
-    setDays(journalDays ?? []);
+    const daysWithPhotos: JournalDay[] = [];
+
+    for (const day of journalDays ?? []) {
+      const photo = day.photos?.[0];
+
+      let photoUrl: string | null = null;
+
+      if (photo) {
+        const { data: signedUrlData, error: signedUrlError } =
+          await supabase.storage
+            .from('photos')
+            .createSignedUrl(photo.storage_path, 60 * 60);
+
+        if (!signedUrlError && signedUrlData) {
+          photoUrl = signedUrlData.signedUrl;
+        }
+      }
+
+      daysWithPhotos.push({
+        id: day.id,
+        day_number: day.day_number,
+        photoUrl,
+      });
+    }
+
+    setDays(daysWithPhotos);
   }
 
   async function handleCreateJournal() {
@@ -188,6 +232,9 @@ export default function HomeScreen() {
         'Photo uploaded',
         'Your photo was successfully saved.',
       );
+
+      await loadJournal();
+
     } catch (error) {
       Alert.alert(
         'Upload failed',
@@ -206,7 +253,9 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+    >
       <Text style={styles.title}>Memory Story</Text>
 
       <Text style={styles.subtitle}>
@@ -229,23 +278,35 @@ export default function HomeScreen() {
           </Text>
 
           {days.map((day) => (
-            <Pressable
-              key={day.id}
-              style={[
-                styles.dayButton,
-                selectedDayId === day.id && styles.selectedDayButton,
-              ]}
-              onPress={() => setSelectedDayId(day.id)}
-            >
-              <Text
+            <View key={day.id} style={styles.dayContainer}>
+              <Pressable
                 style={[
-                  styles.dayText,
-                  selectedDayId === day.id && styles.selectedDayText,
+                  styles.dayButton,
+                  selectedDayId === day.id && styles.selectedDayButton,
                 ]}
+                onPress={() => setSelectedDayId(day.id)}
               >
-                Day {day.day_number}
-              </Text>
-            </Pressable>
+                <Text
+                  style={[
+                    styles.dayText,
+                    selectedDayId === day.id && styles.selectedDayText,
+                  ]}
+                >
+                  Day {day.day_number}
+                </Text>
+              </Pressable>
+
+              {day.photoUrl ? (
+                <Image
+                  source={{ uri: day.photoUrl }}
+                  style={styles.photo}
+                />
+              ) : (
+                <Text style={styles.noPhotoText}>
+                  No photo yet
+                </Text>
+              )}
+            </View>
           ))}
 
           <Pressable
@@ -267,16 +328,15 @@ export default function HomeScreen() {
           Sign out
         </Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+    paddingBottom:40,
   },
   title: {
     fontSize: 32,
@@ -291,6 +351,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
+  },
+  dayContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  photo: {
+    width: 180,
+    height: 180,
+    borderRadius: 10,
+    marginTop: 8,
+  },
+  noPhotoText: {
+    marginTop: 6,
+    fontSize: 14,
   },
   button: {
     minHeight: 52,
