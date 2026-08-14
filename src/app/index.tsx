@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { File } from 'expo-file-system';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -116,8 +117,18 @@ export default function HomeScreen() {
   }
 
   async function handlePickPhoto() {
-    if (!selectedDayId) {
+    if (!selectedDayId || !journalId) {
       Alert.alert('Choose a day', 'Please select a journal day first.');
+      return;
+    }
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      Alert.alert('Error', 'We could not find your signed-in account.');
       return;
     }
 
@@ -133,12 +144,56 @@ export default function HomeScreen() {
 
     const asset = result.assets[0];
 
-    Alert.alert(
-      'Photo selected',
-      `Selected for Day ${
-        days.find((day) => day.id === selectedDayId)?.day_number
-      }: ${asset.fileName ?? 'photo'}`,
-    );
+    try {
+      const photoId = `${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 10)}`;
+      
+      const storagePath = `${user.id}/${journalId}/${selectedDayId}/${photoId}.jpg`;
+
+      const file = new File(asset.uri);
+      const fileBytes = await file.bytes();
+
+      const { error: uploadError } = await supabase.storage
+        .from('photos')
+        .upload(storagePath, fileBytes, {
+          contentType: 'image/jpeg',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        Alert.alert('Upload failed', uploadError.message);
+        return;
+      }
+
+      const { error: photoError } = await supabase
+        .from('photos')
+        .insert({
+          journal_day_id: selectedDayId,
+          storage_path: storagePath,
+        });
+
+      if (photoError) {
+        // The Storage object should not remain if its database
+        // metadata could not be created.
+        await supabase.storage
+          .from('photos')
+          .remove([storagePath]);
+
+        Alert.alert('Could not save photo', photoError.message);
+        return;
+      }
+
+      Alert.alert(
+        'Photo uploaded',
+        'Your photo was successfully saved.',
+      );
+    } catch (error) {
+      Alert.alert(
+        'Upload failed',
+        error instanceof Error ? error.message : 'Something went wrong.',
+      );
+    }
   }
 
   async function handleSignOut() {
