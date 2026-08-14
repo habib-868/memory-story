@@ -121,6 +121,33 @@ export default function HomeScreen() {
       return;
     }
 
+    const { data: existingJournal, error: existingJournalError } = await supabase
+      .from('journals')
+      .select('id')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingJournalError) {
+      Alert.alert(
+        'Could not check journal',
+        existingJournalError.message,
+      );
+      return;
+    }
+
+    if (existingJournal) {
+      setJournalId(existingJournal.id);
+      await loadJournal();
+
+      Alert.alert(
+        'Journal already exists',
+        'Your existing 7-day journal has been loaded.',
+      );
+      return;
+    }
+
     const { data: journal, error: journalError } = await supabase
       .from('journals')
       .insert({
