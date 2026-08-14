@@ -19,6 +19,8 @@ import { supabase } from '@/lib/supabase';
 type JournalDay = {
   id: string;
   day_number: number;
+  photoId: string | null;
+  storagePath: string | null;
   photoUrl: string | null;
 };
 
@@ -99,6 +101,8 @@ export default function HomeScreen() {
       daysWithPhotos.push({
         id: day.id,
         day_number: day.day_number,
+        photoId: photo?.id ?? null,
+        storagePath: photo?.storage_path ?? null,
         photoUrl,
       });
     }
@@ -194,6 +198,7 @@ export default function HomeScreen() {
         .slice(2, 10)}`;
       
       const storagePath = `${user.id}/${journalId}/${selectedDayId}/${photoId}.jpg`;
+      const selectedDay = days.find((day) => day.id === selectedDayId);
 
       const file = new File(asset.uri);
       const fileBytes = await file.bytes();
@@ -210,22 +215,44 @@ export default function HomeScreen() {
         return;
       }
 
-      const { error: photoError } = await supabase
-        .from('photos')
-        .insert({
-          journal_day_id: selectedDayId,
-          storage_path: storagePath,
-        });
-
-      if (photoError) {
-        // The Storage object should not remain if its database
-        // metadata could not be created.
-        await supabase.storage
+      if (selectedDay?.photoId) {
+        const { error: photoError } = await supabase
           .from('photos')
-          .remove([storagePath]);
+          .update({
+            storage_path: storagePath,
+          })
+          .eq('id', selectedDay.photoId);
 
-        Alert.alert('Could not save photo', photoError.message);
-        return;
+        if (photoError) {
+          await supabase.storage
+            .from('photos')
+            .remove([storagePath]);
+
+          Alert.alert('Could not replace photo', photoError.message);
+          return;
+        }
+
+        if (selectedDay.storagePath) {
+          await supabase.storage
+            .from('photos')
+            .remove([selectedDay.storagePath]);
+        }
+      } else {
+        const { error: photoError } = await supabase
+          .from('photos')
+          .insert({
+            journal_day_id: selectedDayId,
+            storage_path: storagePath,
+          });
+
+        if (photoError) {
+          await supabase.storage
+            .from('photos')
+            .remove([storagePath]);
+
+          Alert.alert('Could not save photo', photoError.message);
+          return;
+        }
       }
 
       Alert.alert(
@@ -314,7 +341,9 @@ export default function HomeScreen() {
             onPress={handlePickPhoto}
           >
             <Text style={styles.buttonText}>
-              Choose a photo
+              {days.find((day) => day.id === selectedDayId)?.photoId
+                ? 'Replace photo'
+                : 'Choose a photo'}
             </Text>
           </Pressable>
         </>
