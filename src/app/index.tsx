@@ -302,6 +302,73 @@ export default function HomeScreen() {
     }
   }
 
+  async function handleDeletePhoto() {
+    if (!selectedDayId || !journalId) {
+      Alert.alert('Choose a day', 'Please select a journal day first.');
+      return;
+    }
+
+    const selectedDay = days.find((day) => day.id === selectedDayId);
+
+    if (!selectedDay?.photoId || !selectedDay.storagePath) {
+      Alert.alert('No photo', 'There is no photo to delete for this day.');
+      return;
+    }
+
+    Alert.alert(
+      'Delete photo?',
+      'This photo will be permanently removed from your journal.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const { error: photoError } = await supabase
+              .from('photos')
+              .delete()
+              .eq('id', selectedDay.photoId);
+
+            if (photoError) {
+              Alert.alert('Could not delete photo', photoError.message);
+              return;
+            }
+
+            const storagePath = selectedDay.storagePath;
+
+            if (!storagePath) {
+              Alert.alert('No photo', 'The photo storage path is missing.');
+              return;
+            }
+
+            const { error: storageError } = await supabase.storage
+              .from('photos')
+              .remove([storagePath]);
+
+            if (storageError) {
+              Alert.alert(
+                'Photo record deleted',
+                `The photo record was removed, but the stored image could not be removed: ${storageError.message}`,
+              );
+              await loadJournal();
+              return;
+            }
+
+            await loadJournal();
+
+            Alert.alert(
+              'Photo deleted',
+              'The photo was removed from your journal.',
+            );
+          },
+        },
+      ],
+    );
+  }
+
   async function handleSignOut() {
     const { error } = await supabase.auth.signOut();
 
@@ -382,6 +449,17 @@ export default function HomeScreen() {
                 : 'Choose a photo'}
             </Text>
           </Pressable>
+          
+          {days.find((day) => day.id === selectedDayId)?.photoId ? (
+            <Pressable
+              style={styles.button}
+              onPress={handleDeletePhoto}
+            >
+              <Text style={styles.buttonText}>
+                Delete photo
+              </Text>
+            </Pressable>
+          ) : null}
         </>
       )}
 
