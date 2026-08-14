@@ -28,6 +28,7 @@ export default function HomeScreen() {
   const [journalId, setJournalId] = useState<string | null>(null);
   const [days, setDays] = useState<JournalDay[]>([]);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadJournal();
@@ -53,10 +54,12 @@ export default function HomeScreen() {
 
     if (journalError) {
       Alert.alert('Could not load journal', journalError.message);
+      setLoading(false);
       return;
     }
 
     if (!journal) {
+      setLoading(false);
       return;
     }
 
@@ -77,6 +80,7 @@ export default function HomeScreen() {
 
     if (daysError) {
       Alert.alert('Could not load journal days', daysError.message);
+      setLoading(false);
       return;
     }
 
@@ -108,6 +112,7 @@ export default function HomeScreen() {
     }
 
     setDays(daysWithPhotos);
+    setLoading(false);
   }
 
   async function handleCreateJournal() {
@@ -313,10 +318,14 @@ export default function HomeScreen() {
       <Text style={styles.title}>Memory Story</Text>
 
       <Text style={styles.subtitle}>
-        Create your 7-day story.
-      </Text>
+          Create your 7-day story.
+        </Text>
 
-      {!journalId ? (
+        {loading ? (
+          <Text style={styles.subtitle}>
+            Loading your journal...
+          </Text>
+        ) : !journalId ? (
         <Pressable
           style={styles.button}
           onPress={handleCreateJournal}
