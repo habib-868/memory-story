@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     padding: 24,
-    paddingBottom:40,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 32,
@@ -352,18 +352,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 12,
   },
-  dayContainer: {
+    dayContainer: {
+    width: 180,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   photo: {
     width: 180,
     height: 180,
-    borderRadius: 10,
+    borderRadius: 12,
     marginTop: 8,
   },
   noPhotoText: {
-    marginTop: 6,
+    width: 180,
+    height: 180,
+    borderRadius: 12,
+    marginTop: 8,
+    textAlign: 'center',
+    textAlignVertical: 'center',
     fontSize: 14,
   },
   button: {
@@ -383,7 +389,7 @@ const styles = StyleSheet.create({
   dayButton: {
     width: 180,
     height: 44,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -394,10 +400,11 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 16,
+    fontWeight: '500',
   },
   selectedDayText: {
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   signOutButton: {
     marginTop: 20,
