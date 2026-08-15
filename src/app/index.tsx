@@ -29,6 +29,7 @@ export default function HomeScreen() {
   const [days, setDays] = useState<JournalDay[]>([]);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [photoActionLoading, setPhotoActionLoading] = useState(false);
 
   useEffect(() => {
     loadJournal();
@@ -197,7 +198,14 @@ export default function HomeScreen() {
   }
 
   async function handlePickPhoto() {
+    if (photoActionLoading) {
+      return;
+    }
+
+    setPhotoActionLoading(true);
+
     if (!selectedDayId || !journalId) {
+      setPhotoActionLoading(false);
       Alert.alert('Choose a day', 'Please select a journal day first.');
       return;
     }
@@ -208,6 +216,7 @@ export default function HomeScreen() {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
+      setPhotoActionLoading(false);
       Alert.alert('Error', 'We could not find your signed-in account.');
       return;
     }
@@ -219,6 +228,7 @@ export default function HomeScreen() {
     });
 
     if (result.canceled) {
+      setPhotoActionLoading(false);
       return;
     }
 
@@ -299,6 +309,8 @@ export default function HomeScreen() {
         'Upload failed',
         error instanceof Error ? error.message : 'Something went wrong.',
       );
+    } finally {
+      setPhotoActionLoading(false);
     }
   }
 
@@ -449,7 +461,7 @@ export default function HomeScreen() {
                 : 'Choose a photo'}
             </Text>
           </Pressable>
-          
+
           {days.find((day) => day.id === selectedDayId)?.photoId ? (
             <Pressable
               style={styles.button}
