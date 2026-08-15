@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -19,6 +20,7 @@ import { supabase } from '@/lib/supabase';
 type JournalDay = {
   id: string;
   day_number: number;
+  memoryText: string;
   photoId: string | null;
   storagePath: string | null;
   photoUrl: string | null;
@@ -30,6 +32,8 @@ export default function HomeScreen() {
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [photoActionLoading, setPhotoActionLoading] = useState(false);
+  const [memoryText, setMemoryText] = useState('');
+  const [memorySaving, setMemorySaving] = useState(false);
 
   useEffect(() => {
     loadJournal();
@@ -71,6 +75,7 @@ export default function HomeScreen() {
       .select(`
         id,
         day_number,
+        memory_text,
         photos (
           id,
           storage_path
@@ -106,6 +111,7 @@ export default function HomeScreen() {
       daysWithPhotos.push({
         id: day.id,
         day_number: day.day_number,
+        memoryText: day.memory_text ?? '',
         photoId: photo?.id ?? null,
         storagePath: photo?.storage_path ?? null,
         photoUrl,
@@ -381,6 +387,40 @@ export default function HomeScreen() {
     );
   }
 
+  async function handleSaveMemory() {
+    if (!selectedDayId) {
+      Alert.alert('Choose a day', 'Please select a journal day first.');
+      return;
+    }
+
+    setMemorySaving(true);
+
+    const { error } = await supabase
+      .from('journal_days')
+      .update({
+        memory_text: memoryText,
+      })
+      .eq('id', selectedDayId);
+
+    if (error) {
+      setMemorySaving(false);
+      Alert.alert('Could not save memory', error.message);
+      return;
+    }
+
+    setDays((currentDays) =>
+      currentDays.map((day) =>
+        day.id === selectedDayId
+          ? { ...day, memoryText }
+          : day,
+      ),
+    );
+
+    setMemorySaving(false);
+
+    Alert.alert('Memory saved', 'Your memory was saved successfully.');
+  }
+
   async function handleSignOut() {
     const { error } = await supabase.auth.signOut();
 
@@ -426,7 +466,10 @@ export default function HomeScreen() {
                   styles.dayButton,
                   selectedDayId === day.id && styles.selectedDayButton,
                 ]}
-                onPress={() => setSelectedDayId(day.id)}
+                onPress={() => {
+                  setSelectedDayId(day.id);
+                  setMemoryText(day.memoryText);
+                }}
               >
                 <Text
                   style={[
@@ -450,6 +493,29 @@ export default function HomeScreen() {
               )}
             </View>
           ))}
+
+          {selectedDayId ? (
+            <>
+              <TextInput
+                style={styles.memoryInput}
+                value={memoryText}
+                onChangeText={setMemoryText}
+                placeholder="Write what you remember about this day..."
+                multiline
+                textAlignVertical="top"
+              />
+
+              <Pressable
+                style={styles.button}
+                onPress={handleSaveMemory}
+                disabled={memorySaving}
+              >
+                <Text style={styles.buttonText}>
+                  {memorySaving ? 'Saving...' : 'Save memory'}
+                </Text>
+              </Pressable>
+            </>
+          ) : null}
 
           <Pressable
             style={styles.button}
@@ -526,6 +592,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textAlignVertical: 'center',
     fontSize: 14,
+  },
+  memoryInput: {
+    width: '100%',
+    minHeight: 140,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    marginTop: 12,
   },
   button: {
     minHeight: 52,
