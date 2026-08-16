@@ -34,6 +34,8 @@ export default function HomeScreen() {
   const [photoActionLoading, setPhotoActionLoading] = useState(false);
   const [memoryText, setMemoryText] = useState('');
   const [memorySaving, setMemorySaving] = useState(false);
+  const [storySaving, setStorySaving] = useState(false);
+  const [story, setStory] = useState('');
 
   useEffect(() => {
     loadJournal();
@@ -421,6 +423,73 @@ export default function HomeScreen() {
     Alert.alert('Memory saved', 'Your memory was saved successfully.');
   }
 
+  async function handleGenerateStory() {
+    if (days.length !== 7) {
+      Alert.alert(
+        'Journal incomplete',
+        'Please make sure all 7 journal days exist before generating your story.',
+      );
+      return;
+    }
+
+    setStorySaving(true);
+
+    const memories = days.map((day) => day.memoryText);
+
+    const { data, error } = await supabase.functions.invoke(
+      'rapid-action',
+      {
+        body: {
+          memories,
+        },
+      },
+    );
+
+    if (error) {
+      setStorySaving(false);
+      Alert.alert('Could not generate story', error.message);
+      return;
+    }
+
+    const story = data?.story;
+
+    if (!story) {
+      setStorySaving(false);
+      Alert.alert('Could not generate story', 'No story was returned.');
+      return;
+    }
+
+    if (!journalId) {
+      setStorySaving(false);
+      Alert.alert('Could not save story', 'No journal was selected.');
+      return;
+    }
+
+    const { error: storyError } = await supabase
+      .from('stories')
+      .upsert(
+        {
+          journal_id: journalId,
+          content: story,
+        },
+        {
+          onConflict: 'journal_id',
+        },
+      );
+
+    if (storyError) {
+      setStorySaving(false);
+      Alert.alert('Could not save story', storyError.message);
+      return;
+    }
+
+    setStory(story);
+    setStorySaving(false);
+
+    Alert.alert('Story saved', 'Your story was saved successfully.');
+
+  }
+
   async function handleSignOut() {
     const { error } = await supabase.auth.signOut();
 
@@ -542,6 +611,22 @@ export default function HomeScreen() {
       )}
 
       <Pressable
+        style={styles.button}
+        onPress={handleGenerateStory}
+      >
+        <Text style={styles.buttonText}>
+          Test story generation
+        </Text>
+      </Pressable>
+
+      {story ? (
+        <View style={styles.storyContainer}>
+          <Text style={styles.storyTitle}>Your Story</Text>
+          <Text style={styles.storyText}>{story}</Text>
+        </View>
+      ) : null}
+      
+      <Pressable
         style={styles.signOutButton}
         onPress={handleSignOut}
       >
@@ -558,6 +643,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
     paddingBottom: 40,
+  },
+  storyContainer: {
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
+  },
+  storyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  storyText: {
+    fontSize: 16,
+    lineHeight: 24,
   },
   title: {
     fontSize: 32,
