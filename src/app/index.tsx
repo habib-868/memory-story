@@ -53,8 +53,9 @@ export default function HomeScreen() {
 
     const { data: journal, error: journalError } = await supabase
       .from('journals')
-      .select('id')
+      .select('id, start_date, end_date, status')
       .eq('user_id', user.id)
+      .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -162,11 +163,18 @@ export default function HomeScreen() {
       return;
     }
 
+    const startDate = new Date();
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 6);
+
     const { data: journal, error: journalError } = await supabase
       .from('journals')
       .insert({
         user_id: user.id,
         title: 'My 7-Day Story',
+        start_date: startDate.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0],
+        status: 'active',
       })
       .select('id')
       .single();
@@ -484,9 +492,81 @@ export default function HomeScreen() {
     }
 
     setStory(story);
+
+    // Mark the current journal as completed
+    const { error: completeError } = await supabase
+      .from('journals')
+      .update({
+        status: 'completed',
+      })
+      .eq('id', journalId);
+
+    if (completeError) {
+      setStorySaving(false);
+      Alert.alert(
+        'Story saved, but journal could not be completed',
+        completeError.message,
+      );
+      return;
+    }
+
+    // Create the next 7-day journal
+    const startDate = new Date();
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 6);
+
+    const {
+      data: newJournal,
+      error: newJournalError,
+    } = await supabase
+      .from('journals')
+      .insert({
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        title: 'My 7-Day Story',
+        start_date: startDate.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0],
+        status: 'active',
+      })
+      .select('id')
+      .single();
+
+    if (newJournalError || !newJournal) {
+      setStorySaving(false);
+      Alert.alert(
+        'Story saved, but new journal could not be created',
+        newJournalError?.message ?? 'Something went wrong.',
+      );
+      return;
+    }
+
+    // Create the next journal's seven days
+    const newDays = Array.from({ length: 7 }, (_, index) => ({
+      journal_id: newJournal.id,
+      day_number: index + 1,
+    }));
+
+    const { error: newDaysError } = await supabase
+      .from('journal_days')
+      .insert(newDays);
+
+    if (newDaysError) {
+      setStorySaving(false);
+      Alert.alert(
+        'New journal created, but days could not be created',
+        newDaysError.message,
+      );
+      return;
+    }
+
+    setJournalId(newJournal.id);
     setStorySaving(false);
 
-    Alert.alert('Story saved', 'Your story was saved successfully.');
+    await loadJournal();
+
+    Alert.alert(
+      'Story saved',
+      'Your previous week is complete and a fresh 7-day journal is ready.',
+    );
 
   }
 
