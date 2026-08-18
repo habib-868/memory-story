@@ -16,3 +16,28 @@ export async function loadActiveJournal(userId: string) {
 
   return journal;
 }
+
+export async function loadCompletedStories() {
+  const { data: stories, error } = await supabase
+    .from('stories')
+    .select(`
+      id,
+      content,
+      created_at,
+      journals!inner (
+        status
+      )
+    `)
+    .eq('journals.status', 'completed')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (stories ?? []).map((item) => ({
+    id: item.id,
+    content: item.content,
+    created_at: item.created_at,
+  }));
+}

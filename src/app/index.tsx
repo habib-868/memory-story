@@ -3,7 +3,11 @@ import {
   generateStory,
 } from '../services/storyService';
 
-import { loadActiveJournal } from '../services/journalService';
+import {
+  loadActiveJournal,
+  loadCompletedStories,
+} from '../services/journalService';
+
 
 import { useEffect, useState } from 'react';
 import { File } from 'expo-file-system';
@@ -154,34 +158,17 @@ export default function HomeScreen() {
   }
 
   async function loadPreviousStories() {
-    const { data: stories, error } = await supabase
-      .from('stories')
-      .select(`
-        id,
-        content,
-        created_at,
-        journals!inner (
-          status
-        )
-      `)
-      .eq('journals.status', 'completed')
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const stories = await loadCompletedStories();
+      setPreviousStories(stories);
+    } catch (error) {
       Alert.alert(
         'Could not load previous stories',
-        error.message,
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong.',
       );
-      return;
     }
-
-    setPreviousStories(
-      (stories ?? []).map((item) => ({
-        id: item.id,
-        content: item.content,
-        created_at: item.created_at,
-      })),
-    );
   }
 
   async function handleCreateJournal() {
