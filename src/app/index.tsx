@@ -1,3 +1,8 @@
+import {
+  completeJournalAndCreateNext,
+  generateStory,
+} from '../services/storyService';
+
 import { useEffect, useState } from 'react';
 import { File } from 'expo-file-system';
 
@@ -500,28 +505,23 @@ export default function HomeScreen() {
 
     const memories = days.map((day) => day.memoryText);
 
-    const { data, error } = await supabase.functions.invoke(
-      'rapid-action',
-      {
-        body: {
-          memories,
-        },
-      },
-    );
+    let story: string;
 
-    if (error) {
+    try {
+      story = await generateStory(memories);
+    } catch (error) {
       setStorySaving(false);
-      Alert.alert('Could not generate story', error.message);
+
+      Alert.alert(
+        'Could not generate story',
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong.',
+      );
+
       return;
     }
 
-    const story = data?.story;
-
-    if (!story) {
-      setStorySaving(false);
-      Alert.alert('Could not generate story', 'No story was returned.');
-      return;
-    }
 
     if (!journalId) {
       setStorySaving(false);
@@ -549,21 +549,23 @@ export default function HomeScreen() {
 
     setStory(story);
 
-    const { data: newJournalId, error: transitionError } =
-      await supabase.rpc(
-        'complete_journal_and_create_next',
-        {
-          p_journal_id: journalId,
-          p_story: story,
-        },
-      );
+    let newJournalId: string;
 
-    if (transitionError || !newJournalId) {
+    try {
+      newJournalId = await completeJournalAndCreateNext(
+        journalId,
+        story,
+      );
+    } catch (error) {
       setStorySaving(false);
+
       Alert.alert(
         'Could not start the next journal',
-        transitionError?.message ?? 'Something went wrong.',
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong.',
       );
+
       return;
     }
 
