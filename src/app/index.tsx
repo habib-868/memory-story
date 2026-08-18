@@ -36,9 +36,15 @@ export default function HomeScreen() {
   const [memorySaving, setMemorySaving] = useState(false);
   const [storySaving, setStorySaving] = useState(false);
   const [story, setStory] = useState('');
+  const [previousStories, setPreviousStories] = useState<
+    { id: string; content: string; created_at: string }[]
+  >([]);
+
+
 
   useEffect(() => {
     loadJournal();
+    loadPreviousStories();
   }, []);
 
   async function loadJournal() {
@@ -122,7 +128,53 @@ export default function HomeScreen() {
     }
 
     setDays(daysWithPhotos);
+
+    const { data: savedStory, error: storyError } = await supabase
+      .from('stories')
+      .select('content')
+      .eq('journal_id', journal.id)
+      .maybeSingle();
+
+    if (storyError) {
+      Alert.alert('Could not load story', storyError.message);
+      setLoading(false);
+      return;
+    }
+
+    setStory(savedStory?.content ?? '');
+
     setLoading(false);
+  }
+
+  async function loadPreviousStories() {
+    const { data: stories, error } = await supabase
+      .from('stories')
+      .select(`
+        id,
+        content,
+        created_at,
+        journals!inner (
+          status
+        )
+      `)
+      .eq('journals.status', 'completed')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      Alert.alert(
+        'Could not load previous stories',
+        error.message,
+      );
+      return;
+    }
+
+    setPreviousStories(
+      (stories ?? []).map((item) => ({
+        id: item.id,
+        content: item.content,
+        created_at: item.created_at,
+      })),
+    );
   }
 
   async function handleCreateJournal() {
@@ -432,6 +484,10 @@ export default function HomeScreen() {
   }
 
   async function handleGenerateStory() {
+    if (storySaving) {
+      return;
+    }
+
     if (days.length !== 7) {
       Alert.alert(
         'Journal incomplete',
@@ -493,72 +549,25 @@ export default function HomeScreen() {
 
     setStory(story);
 
-    // Mark the current journal as completed
-    const { error: completeError } = await supabase
-      .from('journals')
-      .update({
-        status: 'completed',
-      })
-      .eq('id', journalId);
+    const { data: newJournalId, error: transitionError } =
+      await supabase.rpc(
+        'complete_journal_and_create_next',
+        {
+          p_journal_id: journalId,
+          p_story: story,
+        },
+      );
 
-    if (completeError) {
+    if (transitionError || !newJournalId) {
       setStorySaving(false);
       Alert.alert(
-        'Story saved, but journal could not be completed',
-        completeError.message,
+        'Could not start the next journal',
+        transitionError?.message ?? 'Something went wrong.',
       );
       return;
     }
 
-    // Create the next 7-day journal
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 6);
-
-    const {
-      data: newJournal,
-      error: newJournalError,
-    } = await supabase
-      .from('journals')
-      .insert({
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-        title: 'My 7-Day Story',
-        start_date: startDate.toISOString().split('T')[0],
-        end_date: endDate.toISOString().split('T')[0],
-        status: 'active',
-      })
-      .select('id')
-      .single();
-
-    if (newJournalError || !newJournal) {
-      setStorySaving(false);
-      Alert.alert(
-        'Story saved, but new journal could not be created',
-        newJournalError?.message ?? 'Something went wrong.',
-      );
-      return;
-    }
-
-    // Create the next journal's seven days
-    const newDays = Array.from({ length: 7 }, (_, index) => ({
-      journal_id: newJournal.id,
-      day_number: index + 1,
-    }));
-
-    const { error: newDaysError } = await supabase
-      .from('journal_days')
-      .insert(newDays);
-
-    if (newDaysError) {
-      setStorySaving(false);
-      Alert.alert(
-        'New journal created, but days could not be created',
-        newDaysError.message,
-      );
-      return;
-    }
-
-    setJournalId(newJournal.id);
+    setJournalId(newJournalId);
     setStorySaving(false);
 
     await loadJournal();
@@ -693,6 +702,7 @@ export default function HomeScreen() {
       <Pressable
         style={styles.button}
         onPress={handleGenerateStory}
+        disabled={storySaving}
       >
         <Text style={styles.buttonText}>
           Test story generation
@@ -703,6 +713,23 @@ export default function HomeScreen() {
         <View style={styles.storyContainer}>
           <Text style={styles.storyTitle}>Your Story</Text>
           <Text style={styles.storyText}>{story}</Text>
+        </View>
+      ) : null}
+
+      {previousStories.length > 0 ? (
+        <View style={styles.previousStoriesContainer}>
+          <Text style={styles.storyTitle}>Previous Stories</Text>
+
+          {previousStories.map((previousStory) => (
+            <View
+              key={previousStory.id}
+              style={styles.previousStoryCard}
+            >
+              <Text style={styles.storyText}>
+                {previousStory.content}
+              </Text>
+            </View>
+          ))}
         </View>
       ) : null}
       
@@ -738,6 +765,17 @@ const styles = StyleSheet.create({
   storyText: {
     fontSize: 16,
     lineHeight: 24,
+  },
+  previousStoriesContainer: {
+    width: '100%',
+    marginTop: 24,
+  },
+
+  previousStoryCard: {
+    marginTop: 12,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
   },
   title: {
     fontSize: 32,
