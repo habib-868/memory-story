@@ -14,13 +14,13 @@ import {
 } from '../services/photoService';
 
 import GenerateStoryButton from '../components/GenerateStoryButton';
+import JournalDayCard from '../components/JournalDayCard';
 
 import { useEffect, useState } from 'react';
 import { File } from 'expo-file-system';
 
 import {
   Alert,
-  Image,
   Pressable,
   ScrollView,
   Text,
@@ -566,38 +566,16 @@ export default function HomeScreen() {
           </Text>
 
           {days.map((day) => (
-            <View key={day.id} style={styles.dayContainer}>
-              <Pressable
-                style={[
-                  styles.dayButton,
-                  selectedDayId === day.id && styles.selectedDayButton,
-                ]}
-                onPress={() => {
-                  setSelectedDayId(day.id);
-                  setMemoryText(day.memoryText);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.dayText,
-                    selectedDayId === day.id && styles.selectedDayText,
-                  ]}
-                >
-                  Day {day.day_number}
-                </Text>
-              </Pressable>
-
-              {day.photoUrl ? (
-                <Image
-                  source={{ uri: day.photoUrl }}
-                  style={styles.photo}
-                />
-              ) : (
-                <Text style={styles.noPhotoText}>
-                  No photo yet
-                </Text>
-              )}
-            </View>
+            <JournalDayCard
+              key={day.id}
+              dayNumber={day.day_number}
+              selected={selectedDayId === day.id}
+              photoUrl={day.photoUrl}
+              onSelect={() => {
+                setSelectedDayId(day.id);
+                setMemoryText(day.memoryText);
+              }}
+            />
           ))}
 
           {selectedDayId ? (
