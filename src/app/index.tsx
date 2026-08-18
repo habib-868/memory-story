@@ -3,6 +3,8 @@ import {
   generateStory,
 } from '../services/storyService';
 
+import { loadActiveJournal } from '../services/journalService';
+
 import { useEffect, useState } from 'react';
 import { File } from 'expo-file-system';
 
@@ -62,17 +64,17 @@ export default function HomeScreen() {
       return;
     }
 
-    const { data: journal, error: journalError } = await supabase
-      .from('journals')
-      .select('id, start_date, end_date, status')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    let journal;
 
-    if (journalError) {
-      Alert.alert('Could not load journal', journalError.message);
+    try {
+      journal = await loadActiveJournal(user.id);
+    } catch (error) {
+      Alert.alert(
+        'Could not load journal',
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong.',
+      );
       setLoading(false);
       return;
     }
