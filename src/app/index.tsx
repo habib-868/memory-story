@@ -8,6 +8,8 @@ import {
   loadCompletedStories,
 } from '../services/journalService';
 
+import { saveJournalPhoto } from '../services/photoService';
+
 
 import { useEffect, useState } from 'react';
 import { File } from 'expo-file-system';
@@ -307,57 +309,15 @@ export default function HomeScreen() {
       const file = new File(asset.uri);
       const fileBytes = await file.bytes();
 
-      const { error: uploadError } = await supabase.storage
-        .from('photos')
-        .upload(storagePath, fileBytes, {
-          contentType: 'image/jpeg',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        Alert.alert('Upload failed', uploadError.message);
-        return;
-      }
-
-      if (selectedDay?.photoId) {
-        const { error: photoError } = await supabase
-          .from('photos')
-          .update({
-            storage_path: storagePath,
-          })
-          .eq('id', selectedDay.photoId);
-
-        if (photoError) {
-          await supabase.storage
-            .from('photos')
-            .remove([storagePath]);
-
-          Alert.alert('Could not replace photo', photoError.message);
-          return;
-        }
-
-        if (selectedDay.storagePath) {
-          await supabase.storage
-            .from('photos')
-            .remove([selectedDay.storagePath]);
-        }
-      } else {
-        const { error: photoError } = await supabase
-          .from('photos')
-          .insert({
-            journal_day_id: selectedDayId,
-            storage_path: storagePath,
-          });
-
-        if (photoError) {
-          await supabase.storage
-            .from('photos')
-            .remove([storagePath]);
-
-          Alert.alert('Could not save photo', photoError.message);
-          return;
-        }
-      }
+      await saveJournalPhoto({
+        userId: user.id,
+        journalId,
+        selectedDayId,
+        storagePath,
+        fileBytes,
+        existingPhotoId: selectedDay?.photoId,
+        existingStoragePath: selectedDay?.storagePath,
+      });
 
       Alert.alert(
         'Photo uploaded',
