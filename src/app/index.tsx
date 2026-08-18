@@ -8,7 +8,11 @@ import {
   loadCompletedStories,
 } from '../services/journalService';
 
-import { saveJournalPhoto } from '../services/photoService';
+import {
+  deleteJournalPhoto,
+  saveJournalPhoto,
+} from '../services/photoService';
+
 
 
 import { useEffect, useState } from 'react';
@@ -361,16 +365,6 @@ export default function HomeScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            const { error: photoError } = await supabase
-              .from('photos')
-              .delete()
-              .eq('id', selectedDay.photoId);
-
-            if (photoError) {
-              Alert.alert('Could not delete photo', photoError.message);
-              return;
-            }
-
             const storagePath = selectedDay.storagePath;
 
             if (!storagePath) {
@@ -378,16 +372,18 @@ export default function HomeScreen() {
               return;
             }
 
-            const { error: storageError } = await supabase.storage
-              .from('photos')
-              .remove([storagePath]);
-
-            if (storageError) {
-              Alert.alert(
-                'Photo record deleted',
-                `The photo record was removed, but the stored image could not be removed: ${storageError.message}`,
+            try {
+              await deleteJournalPhoto(
+                selectedDay.photoId!,
+                storagePath,
               );
-              await loadJournal();
+            } catch (error) {
+              Alert.alert(
+                'Could not delete photo',
+                error instanceof Error
+                  ? error.message
+                  : 'Something went wrong.',
+              );
               return;
             }
 

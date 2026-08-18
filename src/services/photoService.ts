@@ -78,3 +78,28 @@ export async function saveJournalPhoto({
     }
   }
 }
+
+
+export async function deleteJournalPhoto(
+  photoId: string,
+  storagePath: string,
+) {
+  const { error: photoError } = await supabase
+    .from('photos')
+    .delete()
+    .eq('id', photoId);
+
+  if (photoError) {
+    throw new Error(photoError.message);
+  }
+
+  const { error: storageError } = await supabase.storage
+    .from('photos')
+    .remove([storagePath]);
+
+  if (storageError) {
+    throw new Error(
+      `The photo record was removed, but the stored image could not be removed: ${storageError.message}`,
+    );
+  }
+}
