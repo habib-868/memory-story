@@ -42,6 +42,56 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 32,
   },
+  journeyTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+
+  journeySubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  progressTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 32,
+    marginBottom: 12,
+  },
+
+  progressContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+  },
+
+  progressItem: {
+    alignItems: 'center',
+  },
+
+  progressDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
+
+  progressDotCompleted: {
+    backgroundColor: '#111',
+  },
+
+  progressDay: {
+    fontSize: 12,
+  },
+
+  currentDayText: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -58,6 +108,12 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 8,
   },
+  journalPhoto: {
+    width: 280,
+    height: 220,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
   noPhotoText: {
     width: 180,
     height: 180,
@@ -69,12 +125,40 @@ export const styles = StyleSheet.create({
   },
   memoryInput: {
     width: '100%',
-    minHeight: 140,
+    height: 100,
     borderWidth: 1,
     borderRadius: 10,
     padding: 12,
     fontSize: 16,
     marginTop: 12,
+    textAlignVertical: 'top',
+  },
+  progressItemSelected: {
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+
+  progressDotSelected: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+
+  progressDaySelected: {
+    fontWeight: '700',
+  },
+  nextDayButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+
+  nextDayButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   button: {
     minHeight: 52,
