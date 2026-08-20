@@ -64,29 +64,17 @@ Instead of keeping isolated notes and photos, Memory Story brings your memories 
 
 ## 🖼️ Demo
 
-### 1. Home / Journal
+<p align="center">
+  <img src="assets/images/demo/demo-1.jpg" width="250" alt="Memory Story Home">
+  <img src="assets/images/demo/demo-2a.png" width="250" alt="Daily Journal">
+  <img src="assets/images/demo/demo-2b.PNG" width="250" alt="Add Memory and Photo">
+</p>
 
-![Memory Story Home](assets/images/demo/demo-1.jpg)
-
-### 2. Daily Journal
-
-![Daily Journal](assets/images/demo/demo-2a.png)
-
-### 3. Add Memory and Photo
-
-![Add Memory](assets/images/demo/demo-2b.PNG)
-
-### 4. Weekly Story
-
-![Weekly Story](assets/images/demo/demo-3.PNG)
-
-### 5. My Stories
-
-![My Stories](assets/images/demo/demo-4.PNG)
-
-### 6. Story View
-
-![Story View](assets/images/demo/demo-5.png)
+<p align="center">
+  <img src="assets/images/demo/demo-3.PNG" width="250" alt="Weekly Story">
+  <img src="assets/images/demo/demo-4.PNG" width="250" alt="My Stories">
+  <img src="assets/images/demo/demo-5.png" width="250" alt="Story View">
+</p>
 
 ---
 
