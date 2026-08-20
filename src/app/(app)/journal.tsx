@@ -19,7 +19,6 @@ import CurrentStory from '../../components/CurrentStory';
 import GenerateStoryButton from '../../components/GenerateStoryButton';
 import MemoryEditor from '../../components/MemoryEditor';
 import PhotoActions from '../../components/PhotoActions';
-import PreviousStories from '../../components/PreviousStories';
 
 import { useEffect, useState } from 'react';
 import { File } from 'expo-file-system';
@@ -61,15 +60,11 @@ export default function HomeScreen() {
   const [memorySaved, setMemorySaved] = useState(false);
   const [storySaving, setStorySaving] = useState(false);
   const [story, setStory] = useState('');
-  const [previousStories, setPreviousStories] = useState<
-    { id: string; content: string; created_at: string }[]
-  >([]);
 
 
 
   useEffect(() => {
     loadJournal();
-    loadPreviousStories();
   }, []);
 
   async function loadJournal() {
@@ -123,19 +118,6 @@ export default function HomeScreen() {
     }
   }
 
-  async function loadPreviousStories() {
-    try {
-      const stories = await loadCompletedStories();
-      setPreviousStories(stories);
-    } catch (error) {
-      Alert.alert(
-        'Could not load previous stories',
-        error instanceof Error
-          ? error.message
-          : 'Something went wrong.',
-      );
-    }
-  }
 
   async function handleCreateJournal() {
     const {
@@ -614,7 +596,6 @@ export default function HomeScreen() {
 
       <CurrentStory story={story} />
 
-      <PreviousStories stories={previousStories} />
       
       <Pressable
         style={styles.signOutButton}

@@ -22,17 +22,6 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
   },
-  previousStoriesContainer: {
-    width: '100%',
-    marginTop: 24,
-  },
-
-  previousStoryCard: {
-    marginTop: 12,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#f5f5f5',
-  },
   title: {
     fontSize: 32,
     fontWeight: '700',
