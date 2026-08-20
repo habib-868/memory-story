@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   ScrollView,
   Text,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
 
-import { loadCompletedStories } from '../../services/journalService';
+import { loadStoryById } from '../../services/journalService';
 
 type Story = {
   id: string;
@@ -28,21 +28,21 @@ function formatDate(dateString: string) {
 }
 
 export default function WeekScreen() {
-  const { storyId } = useLocalSearchParams<{ storyId?: string }>();
+  const { storyId } = useLocalSearchParams<{ storyId: string }>();
 
   const [story, setStory] = useState<Story | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadStory() {
+      if (!storyId) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        const stories = await loadCompletedStories();
-
-        const selectedStory = stories.find(
-          (item) => item.id === storyId
-        );
-
-        setStory((selectedStory as Story) ?? null);
+        const data = await loadStoryById(storyId);
+        setStory(data as Story | null);
       } catch (error) {
         console.error('Failed to load story:', error);
       } finally {
@@ -67,13 +67,11 @@ export default function WeekScreen() {
       <ScrollView
         contentContainerStyle={{
           padding: 24,
-          paddingBottom: 40,
         }}
       >
         <Text
           style={{
-            fontSize: 20,
-            fontWeight: '600',
+            fontSize: 18,
           }}
         >
           Story not found.
@@ -89,16 +87,18 @@ export default function WeekScreen() {
         paddingBottom: 40,
       }}
     >
-      <Text
-        style={{
-          fontSize: 14,
-          marginBottom: 8,
-        }}
-      >
-        {story.start_date && formatDate(story.start_date)}
-        {' – '}
-        {story.end_date && formatDate(story.end_date)}
-      </Text>
+      {story.start_date && story.end_date && (
+        <Text
+          style={{
+            fontSize: 14,
+            marginBottom: 8,
+          }}
+        >
+          {formatDate(story.start_date)}
+          {' – '}
+          {formatDate(story.end_date)}
+        </Text>
+      )}
 
       <Text
         style={{

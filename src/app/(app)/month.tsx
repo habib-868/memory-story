@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   Pressable,
   ScrollView,
   Text,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
 
 import { loadCompletedStories } from '../../services/journalService';
 
@@ -27,17 +27,8 @@ function formatDate(dateString: string) {
   });
 }
 
-function formatMonth(dateString: string) {
-  const date = new Date(`${dateString}T00:00:00`);
-
-  return date.toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
 export default function MonthScreen() {
-  const { month } = useLocalSearchParams<{ month?: string }>();
+  const { month } = useLocalSearchParams<{ month: string }>();
 
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,10 +37,9 @@ export default function MonthScreen() {
     async function loadStories() {
       try {
         const data = await loadCompletedStories();
-
         setStories(data as Story[]);
       } catch (error) {
-        console.error('Failed to load stories:', error);
+        console.error('Failed to load month stories:', error);
       } finally {
         setLoading(false);
       }
@@ -68,44 +58,18 @@ export default function MonthScreen() {
   }
 
   const monthStories = stories.filter((story) => {
-    if (!story.start_date) {
+    if (!story.start_date || !month) {
       return false;
     }
 
-    return formatMonth(story.start_date) === month;
-  });
+    const date = new Date(`${story.start_date}T00:00:00`);
 
-  // Remove duplicate test stories with the same date range.
-  const uniqueWeeks = Array.from(
-    monthStories
-      .filter(
-        (story) =>
-          story.start_date &&
-          story.end_date
-      )
-      .reduce((map, story) => {
-        const key = `${story.start_date}_${story.end_date}`;
+    const storyMonth = date.toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
+    });
 
-        const existing = map.get(key);
-
-        if (
-          !existing ||
-          new Date(story.created_at).getTime() >
-            new Date(existing.created_at).getTime()
-        ) {
-          map.set(key, story);
-        }
-
-        return map;
-      }, new Map<string, Story>())
-      .values()
-  );
-
-  uniqueWeeks.sort((a, b) => {
-    return (
-      new Date(`${b.start_date}T00:00:00`).getTime() -
-      new Date(`${a.start_date}T00:00:00`).getTime()
-    );
+    return storyMonth === month;
   });
 
   return (
@@ -125,9 +89,9 @@ export default function MonthScreen() {
         {month}
       </Text>
 
-      {uniqueWeeks.map((story) => (
+      {monthStories.map((story) => (
         <Pressable
-          key={`${story.start_date}_${story.end_date}`}
+          key={story.id}
           onPress={() =>
             router.push({
               pathname: '/(app)/week',
@@ -144,13 +108,13 @@ export default function MonthScreen() {
         >
           <Text
             style={{
-              fontSize: 16,
+              fontSize: 14,
               marginBottom: 6,
             }}
           >
-            {formatDate(story.start_date!)}
+            {story.start_date && formatDate(story.start_date)}
             {' – '}
-            {formatDate(story.end_date!)}
+            {story.end_date && formatDate(story.end_date)}
           </Text>
 
           <Text
@@ -164,14 +128,14 @@ export default function MonthScreen() {
         </Pressable>
       ))}
 
-      {uniqueWeeks.length === 0 && (
+      {monthStories.length === 0 && (
         <Text
           style={{
             fontSize: 16,
             lineHeight: 24,
           }}
         >
-          No completed weeks in this month yet.
+          No stories found for this month.
         </Text>
       )}
     </ScrollView>
