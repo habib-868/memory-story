@@ -72,6 +72,21 @@ export default function MonthScreen() {
     return storyMonth === month;
   });
 
+  const uniqueWeeks = Array.from(
+    new Map(
+      monthStories
+        .filter(
+          (story) =>
+            story.start_date &&
+            story.end_date
+        )
+        .map((story) => [
+          `${story.start_date}_${story.end_date}`,
+          story,
+        ])
+    ).values()
+  );
+
   return (
     <ScrollView
       contentContainerStyle={{
@@ -89,9 +104,9 @@ export default function MonthScreen() {
         {month}
       </Text>
 
-      {monthStories.map((story) => (
+      {uniqueWeeks.map((story) => (
         <Pressable
-          key={story.id}
+          key={`${story.start_date}_${story.end_date}`}
           onPress={() =>
             router.push({
               pathname: '/(app)/week',
@@ -128,7 +143,7 @@ export default function MonthScreen() {
         </Pressable>
       ))}
 
-      {monthStories.length === 0 && (
+      {uniqueWeeks.length === 0 && (
         <Text
           style={{
             fontSize: 16,
